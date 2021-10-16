@@ -45,7 +45,7 @@ def animate_data_span(raw,mesh,pts):
         
         region_x = times[indmin:indmax]
         plt.close()
-        animate(mesh,pts,raw,times.index(min(region_x)),times.index(max(region_x)),0.01,get_text(min(region_x),max(region_x)))
+        animate(mesh,pts,raw,times.index(min(region_x)),times.index(max(region_x)),0.02,get_text(min(region_x),max(region_x)))
 
 
     span = SpanSelector(ax, onselect, 'horizontal', useblit=True,
@@ -102,22 +102,24 @@ def plot_edf(raw):
     print([m for m in mne.read_annotations(raw)])
     plt.show()
         
-def animate(mesh,pts,raw,t1,t2,f=0.02,text=''):
+def animate(mesh,pts,raw,t1,t2,f=0.02,intrp_method='Rbf',text=''):
+    # Rbf or Linear
     data = get_data_from_raw_edf(raw)
     times = get_times(raw)
-    if t1 < 0:
+    if t1 < 0 and t1 < t2:
         print("please insert a valid starting time-point")
-    if t2 > len(data[0]) :
+    if t2 > len(data[0]) and t2 > t1 :
         print("please insert a valid ending time-point")
     vmin = min([min(i[t1:t2]) for i in data])
     vmax = max([max(i[t1:t2]) for i in data])
     text = get_text(times[t1],times[t2])
-    
+    points= Points(pts,r=5,alpha=0.7,c='w')
     plot = show(interactive=False,bg='k')
     for i in range(t1,t2):
+
         intpr = RBF_Interpolation(mesh,pts,[j[i] for j in data])
         mesh.cmap('jet', intpr,vmax=vmax,vmin=vmin)
-        plot.show(mesh,text)
+        plot.show(mesh,points,text)
         plot.remove(text)
         time.sleep(f)
     plot.close()
