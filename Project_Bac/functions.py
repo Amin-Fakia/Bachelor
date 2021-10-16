@@ -44,8 +44,8 @@ def animate_data_span(raw,mesh,pts):
         indmax = min(len(times) - 1, indmax)
         
         region_x = times[indmin:indmax]
-        plt.close()
-        animate(mesh,pts,raw,times.index(min(region_x)),times.index(max(region_x)),0.02,get_text(min(region_x),max(region_x)))
+        plt.close() 
+        animate(mesh,pts,raw,times.index(min(region_x)),times.index(max(region_x)),0.02)
 
 
     span = SpanSelector(ax, onselect, 'horizontal', useblit=True,
@@ -98,7 +98,6 @@ def RBF_Interpolation(mesh,pts,data):
 
 def plot_edf(raw):
     raw.plot()
-    print(mne.find_events(raw))
     print([m for m in mne.read_annotations(raw)])
     plt.show()
         

@@ -18,9 +18,9 @@ li = Linear_Interpolation(mesh,sensor_pts,test_data)
 rb = RBF_Interpolation(mesh,pts,test_data)
 mesh.addQuality().cmap('jet', li)
 
-show(mesh)
+
 
 #plot_data_from_edf(raw)
 
-#animate_data_span(raw,mesh,pts) # This is experimental still
+animate_data_span(raw,mesh,pts) # This is experimental still
 #animate(mesh,pts,raw,t1=4000,t2=7000,f=0.01)
