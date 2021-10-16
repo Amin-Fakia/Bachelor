@@ -8,15 +8,12 @@ import matplotlib.pyplot as plt
 import time
 from PyQt5 import QtWidgets
 from matplotlib.widgets import SpanSelector
-
 mne.set_log_level(0)
-def get_data_from_raw_edf(s):
-    if isinstance(s,str):
-        raw = mne.io.read_raw_edf(s) 
-        return raw.get_data()
 
-def get_times(s):
-    raw = mne.io.read_raw_edf(s)
+def get_data_from_raw_edf(raw):
+    return raw.get_data()
+
+def get_times(raw):
     df = raw.to_data_frame()
     return df.iloc[:,0]
 def clean_ax(ax):
@@ -26,28 +23,29 @@ def clean_ax(ax):
     ax.spines['left'].set_visible(False)
     ax.get_yaxis().set_ticks([])
 
-def plot_data_from_edf(s):
+def plot_data_from_edf(raw):
     fig,ax = plt.subplots()
-    times = [t/1000 for t in get_times(s)]
-    for d in get_data_from_raw_edf(s):
+    times = [t/1000 for t in get_times(raw)]
+    for d in get_data_from_raw_edf(raw):
         ax.plot(times,d, c='blue',linewidth=0.5)
     plt.show()
     
 def get_text(t1,t2):
-    return Text2D(f'{t1} - {t2} in s')   
-def animate_data_span(s,mesh,pts,data):
+    return Text2D(f'{t1/1000} - {t2/1000} in s',s=2,c='r')   
+
+def animate_data_span(raw,mesh,pts):
     fig,ax = plt.subplots()
-    times = [t/1000 for t in get_times(s)]
-    for d in get_data_from_raw_edf(s):
+    times = [t/1000 for t in get_times(raw)]
+    for d in get_data_from_raw_edf(raw):
         line, = ax.plot(times,d, c='blue',linewidth=0.5)
         
     def onselect(xmin, xmax):
         indmin, indmax = np.searchsorted(times, (xmin, xmax))
         indmax = min(len(times) - 1, indmax)
-
+        
         region_x = times[indmin:indmax]
         plt.close()
-        animate(mesh,pts,data,times.index(min(region_x)),times.index(max(region_x)),0.02,get_text(min(region_x),max(region_x)))
+        animate(mesh,pts,raw,times.index(min(region_x)),times.index(max(region_x)),0.01,get_text(min(region_x),max(region_x)))
 
 
     span = SpanSelector(ax, onselect, 'horizontal', useblit=True,
@@ -67,7 +65,7 @@ def get_mesh(s):
         mesh.rotateX(90)
         mesh.rotateZ(180)
         mesh.origin(0,-0.01,-0.04)
-        mesh.scale(0.09) 
+        mesh.scale(0.09)
         return mesh
 def get_sensor_3DLocations(l):
     pts = []
@@ -98,15 +96,24 @@ def RBF_Interpolation(mesh,pts,data):
     xi, yi, zi = np.split(mesh.points(), 3, axis=1) 
     return itr(xi,yi,zi)
 
-    
-def animate(mesh,pts,data,t1,t2,f=0.02,text=Text2D('')):
-    plot = show(interactive=False)
+def plot_edf(raw):
+    raw.plot()
+    print(mne.find_events(raw))
+    print([m for m in mne.read_annotations(raw)])
+    plt.show()
+        
+def animate(mesh,pts,raw,t1,t2,f=0.02,text=''):
+    data = get_data_from_raw_edf(raw)
+    times = get_times(raw)
     if t1 < 0:
         print("please insert a valid starting time-point")
-    if t2 > len(data[0]):
+    if t2 > len(data[0]) :
         print("please insert a valid ending time-point")
     vmin = min([min(i[t1:t2]) for i in data])
     vmax = max([max(i[t1:t2]) for i in data])
+    text = get_text(times[t1],times[t2])
+    
+    plot = show(interactive=False,bg='k')
     for i in range(t1,t2):
         intpr = RBF_Interpolation(mesh,pts,[j[i] for j in data])
         mesh.cmap('jet', intpr,vmax=vmax,vmin=vmin)
