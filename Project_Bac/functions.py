@@ -102,7 +102,7 @@ def plot_edf(raw):
     print([m for m in mne.read_annotations(raw)])
     plt.show()
         
-def animate(mesh,pts,raw,t1,t2,f=0.02,intrp_method='Rbf',text=''):
+def animate(mesh,pts,raw,t1,t2,f=0.02,text=''):
     # Rbf or Linear
     data = get_data_from_raw_edf(raw)
     times = get_times(raw)
