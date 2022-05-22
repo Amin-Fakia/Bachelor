@@ -5,23 +5,25 @@ import mne
 import numpy as np
 from matplotlib.widgets import Button
 from matplotlib.animation import FuncAnimation
-from vedo import show, interactive
+from vedo import show, interactive,settings
 from functions import *
 from dsi_24_montage import ch_pos
+#from dsi24_montage import ch_pos
 import scipy
 from scipy.signal import savgol_filter
 import easygui
 import os 
+settings.allowInteraction = 1
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 edf_file= easygui.fileopenbox()
 # Data_02_raw.edf
 headPath = f"{dir_path}/3dmodel/Head.obj"
 plot = Plotter(axes=0)
-
-raw = mne.io.read_raw_edf(edf_file ,preload=True).drop_channels(['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz'])
+exc_chnls=['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz','Trigger','EEG A1-Pz','EEG A2-Pz']
+raw = mne.io.read_raw_edf(edf_file ,preload=True).drop_channels(exc_chnls)
 raw.filter(8,12)
-#raw.plot(duration=100)
+# raw.plot(duration=100)
 fig, ax = plt.subplots(2)
 
 def get_times(raw):
@@ -53,7 +55,8 @@ def plot_window(data,sampling_rate,win_size,step):
         
         ax[1].set_ylim((0,10e-6))
         ax[1].plot(frequency, ps,color='red')
-        
+        ax[1].set_ylabel("Intensity (arb. u.)")
+        ax[1].set_xlabel("Frequency in Hz")
         min_win +=step
         max_win +=step
         
@@ -85,6 +88,8 @@ def plot_window(data,sampling_rate,win_size,step):
         plt.show()
     
     ax[0].plot(times,data)
+    ax[0].set_xlabel("time in s")
+    ax[0].set_ylabel("Amplitude in V")
     ax[0].legend(["EEG O1"])
     axnext = plt.axes([0.88, 0.05, 0.1, 0.075])
     bnext = Button(axnext, 'Next')
@@ -134,50 +139,55 @@ def get_ERP_values(data,sampling_rate,win_size,step,itr):
 
 
 data = raw.get_data()
+print(len(data))
 erp_data = get_ERP_values(data,300,3,1,(len(data[0])/300))
 
 
 
 
 O1 = data[13]
-plot_window(O1,300,3,1)
+#plot_window(O1,300,3,1)
 
 
 dota = get_power_values(data,300,3,0.3,(len(data[0])/300))
 
 dota = dota.tolist()
-dota = [d for d in dota[:len(dota)-1]] # exclude TRG channel
+dota = [d for d in dota[:len(dota)]] # exclude TRG channel
 dota_smooth = []
 for d in dota:
     dota_smooth.append(savgol_filter(d, 71, 3))
-plot_data(dota[13])    
+#plot_data(dota[13])    
 dota = dota_smooth
 
 from dsi_24_montage import chnls
-plot_data(dota[13])
+#plot_data(dota[13])
 
-#slider
 
 mesh = get_mesh(headPath)
 t1,t2 = 0,len(dota[0])
 vmin = min([min(i[t1:t2]) for i in dota])
 vmax = max([max(i[t1:t2]) for i in dota])
-sensor_pts = get_sensor_3DLocations(ch_pos,"TRG")
+print([j[0] for j in dota])
+sensor_pts = get_sensor_3DLocations(ch_pos,["TRG","Pz","A1","A2"])
+print(len(sensor_pts))
+print(len(dota))
 intpr = RBF_Interpolation(mesh,sensor_pts,[j[0] for j in dota])
-mesh.cmap('jet', intpr, vmin=-vmax, vmax=vmax).addScalarBar(pos=(0.8,0.3))
+mesh.addQuality().cmap('jet', input_array=intpr,arrayName="Quality", on="points", vmin=-vmax, vmax=vmax).addScalarBar(pos=(0.8,0.3))
+mesh.write("test.obj")
 pts = Points(sensor_pts,r=9)
+
 def slider1(widget, event):
     value = int(widget.GetRepresentation().GetValue())
-    
     intpr = RBF_Interpolation(mesh,sensor_pts,[j[value] for j in dota])
     mesh.cmap('jet', intpr, vmin=-vmax, vmax=vmax)
+    
 def buttonfunc():
     
     if(bu.statusIdx == 0):
         bu.switch()
         txt = Text2D("Starting Animation",c='r')
         
-        plot.show(txt,mesh,interactive=False)
+        #plot.show(txt,mesh,interactive=False)
         for i in range(t1,t2):
             if(bu.statusIdx ==0):
                 bu.switch()
@@ -186,22 +196,33 @@ def buttonfunc():
             
             intpr = RBF_Interpolation(mesh,sensor_pts,[j[i] for j in dota])
             mesh.cmap('jet', intpr, vmin=-vmax, vmax=vmax)
-            plot.show(mesh,txt2)
-            time.sleep(1/20)
-            plot.remove(txt2)
+            plot.show(mesh,txt2,txt,interactive=False)
             
-        
+            sl.GetRepresentation().SetValue(i)
+            plot.remove(txt2)
+            plot.remove(txt)
+          
         plot.remove(txt)
-
+        plot.render()
     bu.switch()
-    plot.render()
+    
+    
+        
+    
+import json
 def save_btn():
     
-    
+    test = {}
     for i in range(len(dota[0])):
         rb = RBF_Interpolation(mesh,sensor_pts,[j[i] for j in dota])
         mesh.addQuality().cmap('jet', input_array=rb,arrayName="Quality", on="points", vmin=-vmax, vmax=vmax)
-        mesh.write(f"ply_data\\EEG_{i}.ply")
+        rgb_c = getRGB(mesh).tolist()
+        test[f"{i}"] = rgb_c
+        # with open('json_data.txt', 'w') as outfile:
+        #     json.dump({f"{i}":rgb_c}, outfile)
+        #mesh.write(f"ply_data\\EEG_{i}.ply")
+    print(i)
+    #mesh.write(f"ply_data\\EEG_{i}.ply")
     sv_btn.switch()
     
     
@@ -233,7 +254,8 @@ sv_btn = plot.addButton(
     italic=False,
 )
 txt1 = Text2D(f"{((len(data[0])/300)/len(dota[0]))}",pos="bottom-left",c='w')
-plot.show(mesh,txt1,pts ,bg='w')
+
+plot.show(mesh,pts,txt1 ,bg='w')
 plot.close()
 
 

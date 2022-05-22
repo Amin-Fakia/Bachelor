@@ -3,7 +3,7 @@ import mne
 import scipy.interpolate as si
 from vedo import *
 from scipy.interpolate import Rbf,RBFInterpolator
-
+from scipy.signal import savgol_filter
 from vedo import show, interactive
 import matplotlib.pyplot as plt
 import time
@@ -95,27 +95,124 @@ def animate_data_span(raw,mesh,pts):
     toolbar.setVisible(False)
     clean_ax(ax)
     plt.show()
+def get_sensors_from_montage(ch_names,monatge_type="standard_1020",curc=.56):
+    montage = mne.channels.make_standard_montage(f"{monatge_type}",curc).get_positions()['ch_pos']
+    
+    i = 0
+    c_ = []
+    for c in ch_names:
+        
+        if c == "EEG Fp1-Pz" or c == "EEG Fp2-Pz":
+            c_.append(c[4:7])
+        else:
+            c_.append(c[4:6])
+        c_
+    
+    print(c_)
+    ch_pos= {}
+    print(montage.keys())
+    for j in c_:
+        if j in list(montage.keys()):
+            ch_pos[j] = montage[j]
+    # for k in montage:
+        
+    #     for j in c_:
+    #         print(j)
+    #         if(j == k):
+    #             print(k)
+    #             ch_pos[j] = montage[k]
+    return ch_pos
 def get_mesh(s):
     if isinstance(s,str):
         mesh = Mesh(s)
         mesh.clean().normalize()
-        mesh.rotateX(90)
+        mesh.rotateX(110) # 90
         mesh.rotateZ(180)
-        mesh.origin(0,-0.01,-0.04) # mesh.origin(0,-0.015,-0.05)
+        mesh.origin(0,-0.015,-0.04) # mesh.origin(0,-0.015,-0.05), latest: mesh.origin(0,-0.01,-0.04)
+        #mesh.origin(-0.01,-0.03,-0.04)
+
         mesh.scale(0.09)#  mesh.scale(0.09)
         return mesh
+def get_sensor_2DLocations(l,exl=[""]):
+    pts = []
+    for i, k in l.items():
+        if i not in exl:
+            pts.append([k[0],k[1]])
+    return pts
 def get_sensor_3DLocations(l,exl=[""]):
     pts = []
     for i, k in l.items():
         if i not in exl:
             pts.append([k[0],k[1],k[2]])
     return pts
+def smoothFilter(data,winsize=71,po=3):
+    data_smooth = []
+    for d in data:
+        data_smooth.append(savgol_filter(d,winsize,po))
+    return data_smooth
+def getRGB(actor, alpha=True, on='points'):
+    """
+        Get RGB(A) colors from a vedo Actor
+        :param actor: Vedo Mesh Object
+        :param bool alpha: to include/exclude alpha
+        :param string on: points or cells
+    """
+    lut = actor.mapper().GetLookupTable()
+    poly = actor.polydata(transformed=False)
+    if 'point' in on:
+        vscalars = poly.GetPointData().GetScalars()
+    else:
+        vscalars = poly.GetCellData().GetScalars()
+    cols =lut.MapScalars(vscalars, 0,0)
+    arr = utils.vtk2numpy(cols)
+    if not alpha:
+        arr = arr[:, :3]
+    return arr
+def get_power_values(data,sampling_rate,win_size=3,step=.1):
+    """
+        Get the power values based on : multi-channel data, sampling frequency, window size, step 
+    """
+    min_win = 0
+    max_win = win_size
+    data_array = []
+    while(max_win < (len(data[0])/sampling_rate)):
+        pos_x1 = int((min_win)*sampling_rate)
+        pos_x2 = int((max_win)*sampling_rate)
+        
+        sums = []
+        
+        for d in data:
+            ft = np.abs(np.fft.rfft(d[pos_x1:pos_x2]))
+            ps = np.square(ft)
+            
+            sums.append(sum(ps))
+        
+        data_array.append(sums)
+        min_win +=step
+        max_win +=step
+    return np.transpose(data_array)
+def get_ERP_values(data,sampling_rate,win_size,step,itr):
+    min_win = 0
+    max_win = win_size
+    data_array = []
+    while(max_win < itr):
+        pos_x1 = int((min_win)*sampling_rate)
+        pos_x2 = int((max_win)*sampling_rate)
+        sums = []
+        for d in data:
+            sums.append(sum(d[pos_x1:pos_x2]))
+        data_array.append(sums)
+        min_win +=step
+        max_win +=step
+    return np.transpose(data_array)   
+
+# find the shortest distance between a sensor point and mesh points
 def findMinD(x,pts,mesh):
     dist = []
     for p in mesh.points():
         dist.append(np.linalg.norm(pts[x]-p))
     return dist.index(min(dist))
-
+# find the corresponding point coordinates on the mesh 
 def findVert(pts,mesh):
     vrt =[]
     for i in range(0,len(pts)):
@@ -127,10 +224,11 @@ def Linear_Interpolation(mesh,pts,data):
     xi, yi, zi = np.split(mesh.points(), 3, axis=1) 
     lir = si.LinearNDInterpolator(pts,data)
     return [[i] for i in np.squeeze(lir(xi, yi, zi))]
-    
+def enhanced_RBF(data):
+    pass
+
 def RBF_Interpolation(mesh,pts,data):
     x, y, z = np.split(np.array(pts), 3, axis=1)
-    
     itr = Rbf(x,y,z,data,function='gaussian')
     xi, yi, zi = np.split(mesh.points(), 3, axis=1)
     return itr(xi,yi,zi)

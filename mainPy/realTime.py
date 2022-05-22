@@ -18,21 +18,21 @@ mesh = get_mesh(headPath)
 sensor_locations = get_sensor_3DLocations(ch_pos,"TRG")
 import timeit
 #settings.allowInteraction = True
-
-# raw = mne.io.read_raw_edf("./mainPy/edf_data/Data_03_raw.edf",preload=True).drop_channels(['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz', 'Trigger'])
+dr = 'C:/Users/ameen/Desktop/Bachelor_Arbeit/Bachelor/mainPy/'
+raw = mne.io.read_raw_edf("./mainPy/edf_data/Data_03_raw.edf",preload=True).drop_channels(['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz', 'Trigger'])
 # raw.filter(6,12)
 # data = [r[400] for r in raw.get_data()]
-
-# ch_names = raw.info["ch_names"]
+data = [0] * 20
+ch_names = raw.info["ch_names"]
 # plt = Plotter()
 
-# intrp = RBF_Interpolation(mesh,sensor_locations,data)
+intrp = RBF_Interpolation(mesh,sensor_locations,data)
 # def square_matrix(size,size2, *elements):
 #     return np.array(elements).reshape(size, size2)
 
 # # print(intrp)
-# mesh.cmap('jet', intrp)
-# mesh.addQuality().cmap('jet', input_array=intrp,arrayName="Quality", on="points")
+#mesh.cmap('jet', intrp)
+mesh.addQuality().cmap('jet', input_array=intrp,arrayName="Quality", on="points")
 # # mesh.write(f"mainPy/ply_data/EEG_0.ply")
 
 # # vMin = -1
@@ -53,7 +53,7 @@ import timeit
 #     txt.followCamera()
 #     txts.append(txt)
 #     idx+=1
-# sensor_pts = Points(sensor_locations,r=9)
+sensor_pts = Points(sensor_locations,r=9)
 # ranges = np.linspace(.035,.95,20)
 #intrp = RBF_Interpolation(mesh,sensor_locations,data)
 
@@ -106,6 +106,8 @@ import timeit
 #show(mesh,sensor_pts,interactive=1)
 #show(mesh,sensor_pts,interactive=0)
 
+
+
 # Text Real time
 def getRGB(actor, alpha=True, on='points'):
     lut = actor.mapper().GetLookupTable()
@@ -127,18 +129,28 @@ from flask import Flask, redirect, url_for, render_template,request
 import time
 import json
 import logging
-# log = logging.getLogger('werkzeug')
-# log.setLevel(logging.ERROR)
+from multiprocessing import Process
+import threading
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 app = Flask(__name__)
+
+#data = np.loadtxt("mainPy/test.txt", delimiter=",")
 @app.route("/")
 def home():
+    
     if request.method == "GET":
+        #show(mesh,sensor_pts,interactive=0)
+        
+        
+        
         data = np.loadtxt("mainPy/test.txt", delimiter=",")
+        
         intrp = RBF_Interpolation(mesh,sensor_locations,data)
-        mesh.cmap('jet', intrp,vmin=-1,vmax=1)
-        mesh.addQuality().cmap('jet', input_array=intrp,arrayName="Quality", on="points")
+        #mesh.cmap('jet', intrp,vmin=-100,vmax=100)
+        mesh.addQuality().cmap('jet', input_array=intrp,arrayName="Quality", on="points",vmin=-100,vmax=100)
         colors = getRGB(mesh,on="points").tolist()
-
+        
         response = app.response_class( 
             response = json.dumps({f"mylist":colors}),
             status = 200,
@@ -149,7 +161,12 @@ def home():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
+    
+    
+    
+    
+    
 #show(mesh)
 
 
