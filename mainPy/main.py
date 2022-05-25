@@ -22,7 +22,7 @@ headPath = f"{dir_path}/3dmodel/Head.obj"
 plot = Plotter(axes=0)
 exc_chnls=['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz','Trigger','EEG A1-Pz','EEG A2-Pz']
 raw = mne.io.read_raw_edf(edf_file ,preload=True).drop_channels(exc_chnls)
-raw.filter(8,12)
+raw.filter(7,13)
 # raw.plot(duration=100)
 fig, ax = plt.subplots(2)
 
@@ -38,7 +38,7 @@ def plot_window(data,sampling_rate,win_size,step):
     aspan_list = []
     min_win = 0
     max_win = win_size
-    ln, = ax[1].plot(frequency, ps)
+    ln, = ax[1].plot(frequency, ft)
     
     def nxt(event):
         nonlocal max_win
@@ -54,7 +54,7 @@ def plot_window(data,sampling_rate,win_size,step):
         frequency = np.linspace(0, sampling_rate/2, len(ps))
         
         ax[1].set_ylim((0,10e-6))
-        ax[1].plot(frequency, ps,color='red')
+        ax[1].plot(frequency, ft,color='red')
         ax[1].set_ylabel("Intensity (arb. u.)")
         ax[1].set_xlabel("Frequency in Hz")
         min_win +=step
@@ -111,9 +111,9 @@ def get_power_values(data,sampling_rate,win_size,step,itr):
         
         for d in data:
             ft = np.abs(np.fft.rfft(d[pos_x1:pos_x2]))
-            ps = np.square(ft)
+            #ps = np.square(ft)
             
-            sums.append(sum(ps))
+            sums.append(sum(ft)/len(ft))
         
         data_array.append(sums)
         min_win +=step
@@ -146,7 +146,7 @@ erp_data = get_ERP_values(data,300,3,1,(len(data[0])/300))
 
 
 O1 = data[13]
-#plot_window(O1,300,3,1)
+plot_window(O1,300,3,1)
 
 
 dota = get_power_values(data,300,3,0.3,(len(data[0])/300))

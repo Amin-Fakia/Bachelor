@@ -12,12 +12,17 @@ from matplotlib.widgets import SpanSelector
 import keyboard
 import matplotlib.animation as animation
 from matplotlib.backend_bases import MouseButton
+import scipy
 from Cursor import Cursor
 mne.set_log_level(0)
 
 
 
-
+def get_intrpContour(data,x,y,xi,yi):
+    zs = []
+    for d in range(len(data[0])):
+        zs.append(scipy.interpolate.griddata((x, y), [i[d] for i in data], (xi[None,:], yi[:,None]), method='cubic'))
+    return zs
 def get_data_from_raw_edf(raw):
     data = raw.get_data()[0:len(raw.get_data())-1]
     f_data = []

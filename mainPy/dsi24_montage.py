@@ -16,7 +16,7 @@ for k in montage:
         if(k in j):
             ch_pos[k] = montage[k]
 
-
+print(ch_pos)
 # ch_pos = {'EEG Fp1-Pz': [-0.02892644, 0.08246248, -0.00686883],
 #           'EEG Fp2-Pz': [0.02935449, 0.08342431, -0.00695727],
 #           'EEG Fz-Pz': [0.00030679, 0.05749775, 0.06530994],

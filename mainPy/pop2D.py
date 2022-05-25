@@ -2,7 +2,7 @@ from matplotlib.pyplot import axes
 import scipy.interpolate
 import numpy as np
 from functions import *
-
+import vedo
 import matplotlib
 import os
 import matplotlib.image as mpimg
@@ -95,8 +95,15 @@ ax.add_patch(ear2)
 ax.scatter(x, y, marker = 'o', c = 'b', s = 15, zorder = 3)
 
 axfreq = plt.axes([0.25, 0.1, 0.65, 0.03])
-vmax = max([max(i[0:len(psds)]) for i in psds])
-vmin = min([min(i[0:len(psds)]) for i in psds])
+
+# fig.tight_layout(pad=1)
+# fig.canvas.draw()
+# data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+# data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+vmin = min([min(i) for i in psds])
+vmax = max([max(i) for i in psds])
+pic = vedo.Picture(data)
+#vedo.show(pic)
 frame = 0
 frame_slider = Slider(
     ax=axfreq,
@@ -108,13 +115,16 @@ frame_slider = Slider(
     orientation="horizontal"
 )
 
+
 def update(val):
     frame = frame_slider.val
     
     ax.cla()
     zi = scipy.interpolate.griddata((x, y), [j[frame] for j in psds], (xi[None,:], yi[:,None]), method='cubic')
-    #ax.imshow(zi,interpolation='gaussian',cmap=plt.cm.jet)
-    ax.contourf(xi, yi, zi, 60, cmap =  plt.cm.jet, zorder = 1,vmin=-vmax,vmax=vmax)
+    
+    
+    ax.contourf(xi, yi, zi, 30, cmap =  plt.cm.jet, zorder = 0,vmin=vmin,vmax=vmax)
+    #ax.contour(xi, yi, zi,4, colors='black', zorder = 1)
     ax.add_patch(head)
     ax.add_patch(whitearea)
     ax.add_line(line)
@@ -122,42 +132,62 @@ def update(val):
     ax.add_patch(ear1)
     # #ax.scatter(x, y, marker = 'o', c = 'k', s = 15, zorder = 3)
     ax.axis('off')
+    
     ax.set_title(f"power winodow: {frame}")
+    #ax.imshow(zi,interpolation='bicubic', zorder = 0,cmap=plt.cm.jet)
 
 frame_slider.on_changed(update)
 
 # plt.imshow(zi,interpolation='gaussian')
 plt.show()
 #ax.contour(xi, yi, zi, 15, colors = "grey", zorder = 2)
-#plt.show()
 
+#zs = get_intrpContour(psds,x,y,xi,yi)
 i = 0
 l = 0
-while i < len(psds[0]):
-    break
-    ax.cla()
-    zi = scipy.interpolate.griddata((x, y), [j[i] for j in psds], (xi[None,:], yi[:,None]), method='cubic')
-    # ax.imshow(zi,interpolation='none',cmap=plt.cm.jet)
-    # ax.contourf(xi, yi, zi, 20, cmap =  plt.cm.jet, zorder = 1,vmin=-vmax,vmax=vmax)
-    # ax.add_patch(circle)
-    # ax.add_patch(circle2)
-    # ax.add_line(line)
-    # ax.add_patch(ear2)
-    # ax.add_patch(ear1)
-    # ax.axis('off')
-    # ax.set_title(f"power winodow: {i}")
+lel = []
+
+# for zi in zs:
+#     break
+#     ax.cla()
+#     zi = scipy.interpolate.griddata((x, y), [j[i] for j in psds], (xi[None,:], yi[:,None]), method='cubic')
+#     #ax.imshow(zi,interpolation='none',cmap=plt.cm.jet)
+#     ax.contourf(xi, yi, zi, 21, cmap =  plt.cm.jet, zorder = 1,vmin=-vmax,vmax=vmax)
+#     ax.add_patch(head)
+#     ax.add_patch(whitearea)
+#     ax.add_line(line)
+#     ax.add_patch(ear2)
+#     ax.add_patch(ear1)
+#     ax.axis('off')
+#     ax.set_title(f"power winodow: {i}")
+#     i+=1
     
-    #plt.savefig(f'./EEGHoloLens2-main/mainPy/pics/{i}.png')
+
+# while i < len(psds[0]):
+    
+#     ax.cla()
+#     #zi = scipy.interpolate.griddata((x, y), [j[i] for j in psds], (xi[None,:], yi[:,None]), method='cubic')
+#     #ax.imshow(zi,interpolation='none',cmap=plt.cm.jet)
+#     ax.contourf(xi, yi, zi, 21, cmap =  plt.cm.jet, zorder = 1,vmin=-vmax,vmax=vmax)
+#     ax.add_patch(head)
+#     ax.add_patch(whitearea)
+#     ax.add_line(line)
+#     ax.add_patch(ear2)
+#     ax.add_patch(ear1)
+#     ax.axis('off')
+#     ax.set_title(f"power winodow: {i}")
+    
+#     #plt.savefig(f'./EEGHoloLens2-main/mainPy/pics/{i}.png')
 
 
-    if(l >= len(psds[0])*3):
-        break
-    if i == len(psds[0])-1:
-        i = 0
-    i+=1
-    l+=1
-    plt.pause(1/60) 
-# import os
+#     if(l >= len(psds[0])*3):
+#         break
+#     if i == len(psds[0])-1:
+#         i = 0
+#     i+=1
+#     l+=1
+#     plt.pause(1/60) 
+# # import os
 # lsdr = os.listdir('./EEGHoloLens2-main/mainPy/pics/')
 # images = []
 # for filename in lsdr:
