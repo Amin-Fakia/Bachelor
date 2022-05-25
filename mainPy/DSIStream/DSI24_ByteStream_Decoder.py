@@ -163,9 +163,9 @@ def printsensorDataPacket(ar):
         #      str(adcStatus)+' Ch Data in uV: ')
         chnlsData = []
         for i in range(0, 25):
-            # if i not in [15]:
-            chData = decodeBytes_ChData(ar, offset=23+i*4, len=4)
-            chnlsData.append(chData)
+            if i not in [15,25,24,23,22,21]:
+                chData = decodeBytes_ChData(ar, offset=23+i*4, len=4)
+                chnlsData.append(chData)
             #print(chData)
         return chnlsData
             

@@ -5,7 +5,7 @@ import matplotlib.pyplot as pylot
 import os
 from dsi_24_montage import ch_pos
 import time
-#from vedo import *
+from vedo import *
 
 from functions import *
 settings.allowInteraction = 1
@@ -31,31 +31,41 @@ def calcFFT(data):
     fftVal = []
     for d in data: # get every row
         ft = np.abs(np.fft.rfft(d))
-        ps = np.square(ft)
-        fftVal.append(sum(ps))
+        
+        # ps = np.square(ft)
+        fftVal.append(sum(ft))
     return fftVal
 
 def get_data(data):
     return data
 ix = 0
 maxV = 0
-pylot.ion()
-fig, ax = plt.subplots()
+# pylot.ion()
+# fig, ax = plt.subplots()
 xdata, ydata = [], []
 
-ln, = ax.plot([], [])
-x,y = np.arange(101),[]
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+step = 20
+win_size = 100
+global st
+
+txt = Text2D("test")
+scbar = mesh.addScalarBar()
+# ln, = ax.plot([], [])
+#x,y = np.arange(101),[]
 while True:
 
     
     data = s.recv(BUFFER_SIZE)
+    
     #plot.show(mesh ,bg='w',interactive=0)
     #print("lol")
     if data == None:
+        #ftvalues = np.empty((20))
         #plt.close()
         break
 
-
+   
     if data == "@ABCD".encode():
         
         data += s.recv(BUFFER_SIZE)
@@ -66,17 +76,36 @@ while True:
         #     dc.printEventPacket(data)
         
         if dc.decodeBytes_packetType(data) == 1:
-            #eeg_data = dc.printsensorDataPacket(data)
             
-            y.append(dc.decodeBytes_ChData(data, offset=23+14*4, len=4))
-            if ix>= 100 and ix % 5 == 0:
-                ln.set_xdata(range(len(y)))
-                ln.set_ydata(y)
-                ax.relim()
-                ax.autoscale_view()
-                fig.canvas.draw()
-                fig.canvas.flush_events()
-                y =  y[5:]
+            #o1 = np.array(dc.decodeBytes_ChData(data, offset=23+14*4, len=4),dtype=object).T
+            eeg_data = dc.printsensorDataPacket(data)
+            ftvalues = np.c_[ftvalues,eeg_data]
+            
+            #y.append(np.array(dc.decodeBytes_ChData(data, offset=23+14*4, len=4),dtype=object).T)
+            if ix>= win_size and ix % step == 0:
+                psds = calcFFT(ftvalues)
+                vmax = max(psds)
+                intpr = RBF_Interpolation(mesh,sensor_pts,psds)
+                mesh.addQuality().cmap('jet', input_array=intpr,arrayName="Quality", on="points",vmin=0)
+                
+                #print(len(ftvalues[0]))
+                st = f"Step: { step }, Window Size: {win_size}\nMax Value: {vmax/1e6:.3f}"
+                
+                txt.text(st)
+                scbar = mesh.addScalarBar()
+                show(mesh,txt,interactive=False)
+                plot.remove(scbar)
+                # Matplotlib
+
+                # ln.set_xdata(range(len(y)))
+                # ln.set_ydata(y)
+                # ax.relim()
+                # ax.autoscale_view()
+                # fig.canvas.draw()
+                # fig.canvas.flush_events()
+                # y =  y[30:]
+
+                ftvalues = np.delete(ftvalues,range(step),1)
             ix+=1
             
             #dt = np.array([e/10e6 for e in eeg_data[0:len(eeg_data)-4]],dtype=object).T

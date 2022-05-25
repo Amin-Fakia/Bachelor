@@ -2,6 +2,7 @@ import socket
 import numpy as np
 from DSIStream import filter, DSI24_ByteStream_Decoder as dc
 import matplotlib.pyplot as plt
+from threading import Thread
 
 TCP_IP = "127.0.0.1"
 TCP_PORT = 8844
@@ -32,6 +33,9 @@ plt.xlabel("X",fontsize=18)
 plt.ylabel("uV",fontsize=18)
 plt.ylim([-10000,10000])
 
+
+
+
 while True:
 
 
@@ -50,7 +54,7 @@ while True:
         elif dc.decodeBytes_packetType(data) == 1:
             #print(dc.decodeBytes_packetNumber(data))
             y=np.append(y, dc.decodeBytes_ChData(data, 23, 4))
-            if len(y) == 300:
+            if len(y) == 100:
                 yFilterd = filter.butter_bandpass_filter(y, 0.1, 20, 300)
 
                 line1.set_xdata(x)
@@ -68,3 +72,6 @@ while True:
 
 
 s.close()
+
+# t1 = Thread(target=liveStream)
+# t2 = Thread

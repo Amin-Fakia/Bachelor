@@ -2,15 +2,21 @@ from matplotlib.pyplot import axes
 import scipy.interpolate
 import numpy as np
 from functions import *
+
 import vedo
+
+import easygui
+
 import matplotlib
 import os
 import matplotlib.image as mpimg
 from matplotlib.widgets import Slider
 dir_path = os.path.dirname(os.path.realpath(__file__))
+filepath= easygui.fileopenbox()
 
-edf_file= f"{dir_path}/edf_data/Data_02_raw.edf"
-raw = mne.io.read_raw_edf(edf_file ,preload=True).drop_channels(['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz','Trigger'])
+#edf_file= f"{dir_path}/edf_data/Data_02_raw.edf"
+raw = mne.io.read_raw_edf(filepath,preload=True).drop_channels(['EEG CM-Pz','EEG X1-Pz','EEG X2-Pz','EEG X3-Pz','Trigger'])
+
 # close old plots
 sensors = get_sensors_from_montage(raw.info['ch_names'])
 
