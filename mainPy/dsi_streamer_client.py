@@ -5,7 +5,7 @@ import matplotlib.pyplot as pylot
 import os
 from dsi_24_montage import ch_pos
 import time
-#from vedo import *
+from vedo import *
 
 from functions import *
 settings.allowInteraction = 1
@@ -17,7 +17,7 @@ plot = Plotter(axes=0)
 
 
 TCP_IP = "127.0.0.1"
-TCP_PORT = 9067
+TCP_PORT = 8844
 BUFFER_SIZE = 5
 y=np.array([])
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,19 +31,21 @@ def calcFFT(data):
     fftVal = []
     for d in data: # get every row
         ft = np.abs(np.fft.rfft(d))
-        ps = np.square(ft)
-        fftVal.append(sum(ps))
+        # ps = np.square(ft)
+        fftVal.append(sum(ft))
     return fftVal
 
 def get_data(data):
     return data
 ix = 0
 maxV = 0
-pylot.ion()
-fig, ax = plt.subplots()
+# pylot.ion()
+# fig, ax = plt.subplots()
 xdata, ydata = [], []
 
-ln, = ax.plot([], [])
+
+
+# ln, = ax.plot([], [])
 x,y = np.arange(101),[]
 while True:
 
@@ -70,12 +72,16 @@ while True:
             
             y.append(dc.decodeBytes_ChData(data, offset=23+14*4, len=4))
             if ix>= 100 and ix % 5 == 0:
-                ln.set_xdata(range(len(y)))
-                ln.set_ydata(y)
-                ax.relim()
-                ax.autoscale_view()
-                fig.canvas.draw()
-                fig.canvas.flush_events()
+                psds = calcFFT(y)
+                intpr = RBF_Interpolation(mesh,sensor_pts,psds,vmin=0)
+                mesh.addQuality().cmap('jet', input_array=intpr,arrayName="Quality", on="points",vmin=0)
+                show(mesh,interactive=False)
+                # ln.set_xdata(range(len(y)))
+                # ln.set_ydata(y)
+                # ax.relim()
+                # ax.autoscale_view()
+                # fig.canvas.draw()
+                # fig.canvas.flush_events()
                 y =  y[5:]
             ix+=1
             
