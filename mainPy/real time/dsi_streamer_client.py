@@ -22,7 +22,7 @@ UNITY_PORT = 6050
 host,port = socket.gethostbyname(TCP_IP ), UNITY_PORT
 BUFFER_SIZE = 5
 NUMBER_OF_THREADS = 6
-JOB_NUMBER = [1, 2, 3]
+JOB_NUMBER = [1, 2]
 queue = Queue()
 win_idx = 0
 
@@ -151,8 +151,8 @@ def work():
             start()
         if x == 2:
             start_dsi_client()
-        if x == 3:
-            plot_FFT()
+        # if x == 3:
+        #     plot_FFT()
         queue.task_done()
 
         
