@@ -1,3 +1,7 @@
+import sys
+
+# setting path
+sys.path.append('../Bachelor/mainPy')
 import socket
 import vedo
 import pickle
@@ -29,6 +33,7 @@ sp = vedo.Sphere()
 plt = vedo.Plotter(axes=0)
 ch_names = raw.info["ch_names"]
 #headPath= easygui.fileopenbox(filetypes=[".edf"])
+dir_path = '../Bachelor/mainPy'
 headPath = f"{dir_path}/3dmodel/Head.obj"
 sensor_locations = get_sensor_3DLocations(ch_pos,["TRG"])
 
@@ -49,18 +54,7 @@ print(host)
 # s.listen(5)
 
 colors = getRGB(mesh).tolist()
-# def slider1(widget, event):
-#     value = widget.GetRepresentation().GetValue()
-#     ch_name = widget.GetRepresentation().GetTitleText()
-#     ch_idx = mne.pick_channels(ch_names,include=[f"{ch_name}"])
-#     data[ch_idx[0]] = value
-    
-#     #print(ch_idx[0],value)
-#     intrp = RBF_Interpolation(mesh,sensor_locations,data)
-#     mesh.addQuality().cmap('jet', input_array=intrp,arrayName="Quality", on="points",vmin=vMin,vmax=vMax)
-#     global colors
-#     colors = getRGB(mesh).tolist()
-    
+
 idx = 0
 txts = []
 for pt in findVert(sensor_locations,mesh):
@@ -71,9 +65,6 @@ for pt in findVert(sensor_locations,mesh):
 sensor_pts = Points(sensor_locations,r=9)
 ranges = np.linspace(.035,.95,20)
 idx = 0
-# for i in ranges:
-#     plt.addSlider2D(slider1,0,vMax,pos=[(0.075,i),(.25,i)],titleSize=0.5, title= f"{chnls[idx]}",showValue=False,tubeWidth=0.0026,sliderWidth=0.0070)
-#     idx+=1
 win_idx = 0
 
 def slider1(widget, event):
@@ -92,18 +83,10 @@ def start():
     print("waiting for connection")
     counter = 0
     while counter < 100:
-        
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((host,port))
-            
-            # now our endpoint knows about the OTHER endpoint.
-            #clientsocket, address = s.accept()
-            #d = {"mylist":[v]}
-            #msg = pickle.dumps(d)
-            #msg = bytes(f"{len(msg):<{HEADERSIZE}}", 'utf-8') + msg
             msg = json.dumps({"mylist": colors,"win_idx":win_idx})
-        
             s.sendall(bytes(msg,encoding="utf-8"))
             time.sleep(1/60)
         except:
@@ -121,7 +104,6 @@ def create_workers():
         t.daemon = True
         t.start()
 def start_turtle():
-    
     while True:
         plt.show(mesh,*txts,proj_snsrs,interactive=0)
         time.sleep(1/60)
@@ -130,10 +112,10 @@ def work():
         x = queue.get()
         if x == 1:
             start()
-            
         if x == 2:
             start_turtle()
         queue.task_done()
+
 def create_jobs():
     for x in JOB_NUMBER:
         queue.put(x)

@@ -1,3 +1,5 @@
+
+from timeit import repeat
 import numpy as np
 import mne
 import scipy.interpolate as si
@@ -11,8 +13,10 @@ from PyQt5 import QtWidgets
 from matplotlib.widgets import SpanSelector
 import keyboard
 import matplotlib.animation as animation
+
 from matplotlib.backend_bases import MouseButton
 import scipy
+from matplotlib.animation import FuncAnimation,PillowWriter,FFMpegWriter, writers
 from Cursor import Cursor
 mne.set_log_level(0)
 
@@ -173,10 +177,12 @@ def getRGB(actor, alpha=True, on='points'):
     if not alpha:
         arr = arr[:, :3]
     return arr
-def get_power_values(data,sampling_rate,win_size=3,step=.1):
+def get_power_values(data,sampling_rate,win_size=3,step=.1,tmin=None,tmax =None):
     """
-        Get the power values based on : multi-channel data, sampling frequency, window size, step 
+        Get the power values based on : multi-channel data, sampling frequency, window size, step
+        optional cut data from tmin, tmax
     """
+
     min_win = 0
     max_win = win_size
     data_array = []
@@ -190,6 +196,7 @@ def get_power_values(data,sampling_rate,win_size=3,step=.1):
             ft = np.abs(np.fft.rfft(d[pos_x1:pos_x2]))
             ps = np.square(ft)
             
+            #sums.append(sum(ps))
             sums.append(sum(ps))
         
         data_array.append(sums)
@@ -232,9 +239,9 @@ def Linear_Interpolation(mesh,pts,data):
 def enhanced_RBF(data):
     pass
 
-def RBF_Interpolation(mesh,pts,data):
+def RBF_Interpolation(mesh,pts,data,function="gaussian"):
     x, y, z = np.split(np.array(pts), 3, axis=1)
-    itr = Rbf(x,y,z,data,function='gaussian')
+    itr = Rbf(x,y,z,data,function=function)
     xi, yi, zi = np.split(mesh.points(), 3, axis=1)
     return itr(xi,yi,zi)
 
@@ -279,38 +286,170 @@ def animate(mesh,pts,raw,t1,t2,f=1,text=''):
     plot.close()
     quit()
 
-def enhanced_animation(raw,mesh,pts):
-    
-    fig,ax = plt.subplots()
-    times = [t/1000 for t in get_times(raw)]
-    data = get_data_from_raw_edf(raw)
+def plot_window_with_ax(data,sampling_rate,win_size,step,event_time,tmin = None,tmax = None):
 
-    try:
-        win = fig.canvas.manager.window
-    except AttributeError:
-        win = fig.canvas.window()
-    toolbar = win.findChild(QtWidgets.QToolBar)
-    toolbar.setVisible(False)
+    #times = [i*(1/sampling_rate) for i in range(len(data))]
+    if tmin == None or tmax == None:
+        times = np.arange(0,len(data)/300,1/sampling_rate)
+        tmin = times[0]
+        tmax = times[-1]
+    else:
+        times = np.arange(tmin,tmax,1/sampling_rate)
+        data = data[tmin*300:tmax*300]
+    print(times[-1])
+    # times = np.arange(0,len(data)/300,1/sampling_rate)
+    
+    
+    
+    #times = times[tmin*300:tmax*300]
+    #data = data[tmin*300:tmax*300]
+    #test_data = data[tmin*300:tmax*300]
+    ft = np.abs(np.fft.rfft(data))
+    ps = np.square(ft)
+    frequency = np.linspace(0, sampling_rate/2, len(ps))
+    fig, ax = plt.subplots(2)
+    fig.set_size_inches((15, 6))
+    # ax[0].axvspan(0,times[int(len(times)/3)], color='red',alpha=0.2)
+    # ax[0].axvspan(times[int(len(times)/3)],times[int(len(times)/1.1)], color='green',alpha=0.2)
+    # ax[0].axvspan(times[int(len(times)/1.1)],times[int(len(times))-1], color='red',alpha=0.2)
+    
+    min_win = 0
+    max_win = win_size
+    ln, = ax[1].plot(frequency, ft)
+    def init():
+        ax[1].set_ylim((0,10e-8))
+
+    def update(frame):
+
+        ax[0].cla()
+        ax[1].cla()
+        nonlocal max_win
+        nonlocal min_win
+
+        ax[0].plot(times,data,label="EEG O1",color='k',lw=0.5)
+        ax[0].set_xlabel("time in s")
+        ax[0].set_ylabel("Amplitude in V")
+        ax[0].axvline(event_time, ls='--',color='blue',lw=2, label='Eyes-Closed')
+        ax[0].axvspan(min_win+tmin,max_win+tmin, color='red',alpha=0.5)
+        ax[0].legend()
+        pos_x1 = int((min_win)*sampling_rate)
+
+        pos_x2 = int((max_win)*sampling_rate)
+        
+        ft = np.abs(np.fft.rfft(data[pos_x1:pos_x2]))
+        ps = np.square(ft)
+        frequency = np.linspace(0, sampling_rate/2, len(ps))
+        ax[1].set_ylim((0,1e-5))
+        ax[1].set_ylabel("Intensity (arb. u.)")
+        ax[1].set_xlabel("Frequency in Hz")
+        ax[1].plot(frequency,ps, color='red',label=(f'Sum: {sum(ps)*(10**5):.2f} e-5'))
+        ax[1].legend()
+        min_win +=step
+        max_win +=step
 
 
     
-    for d in get_data_from_raw_edf(raw):
-        line, = ax.plot(times,d,linewidth=0.5,c='blue')
-    cursor = Cursor(ax)
-    fig.canvas.mpl_connect('motion_notify_event', cursor.on_mouse_move)
-    cid = fig.canvas.mpl_connect('button_press_event', cursor.on_mouse_click)
-    #print(cid)
-    plot = show(interactive=False,bg='k')
-    i = 0
-    # while i < 9000:
-    #     text2 = Text2D(f'\n \n {times[i]/1000} ')
-    #     intpr = RBF_Interpolation(mesh,pts,[j[i] for j in data])
-    #     datas = [l[i] for l in data]
-    #     mesh.cmap('jet', intpr)
-    #     plot.show(mesh,text2) # ,text2
-    #     plot.remove(text2)
+    ax[0].plot(times,data)
+    ax[0].set_xlabel("time in s")
+    ax[0].set_ylabel("Amplitude in V")
+    ax[0].legend(["Time Window"])
+
+    ani = FuncAnimation(fig, update, frames=np.arange(tmin,tmax-win_size,step),init_func=init,save_count=0,interval=50,blit = False,repeat=False)
+    #writegif = PillowWriter(fps=60)
+    Writer = writers['ffmpeg']
+    writer = Writer(fps=60,metadata={'artist':'Me'},codec="h264", bitrate=1000000)
+    ani.save('Final.mp4',writer)
+    # writer = Writer(fps=60, bitrate=3000)
+    #ani.save("FFTwindows.gif",writer=writegif,dpi=200)
+    # axnext = plt.axes([0.88, 0.05, 0.1, 0.075])
+    # bnext = Button(axnext, 'Next')
+    # bnext.on_clicked(nxt)
+def animate_vline(data,event_time):
+    fig, ax = plt.subplots()
+    ax.plot(range(len(data)), data)
+    fig.set_size_inches((11, 2))
+    vl = ax.axvline(0, ls='-', color='r', lw=1, zorder=10)
+    ax.axvline(event_time, ls='--', color='b', lw=1,label="Eyes Closed Event")
+    ax.legend()
+    def update(frame):
+        vl.set_xdata(frame)
+        return vl,
+        
+
+
+    ani = FuncAnimation(fig, update, frames=len(data),interval=1/60,blit=True,repeat=False)
+    Writer = writers['ffmpeg']
+    writer = Writer(fps=60,metadata={'artist':'Me'},codec="h264", bitrate=1000000)
+    ani.save('vlineAnimation.mp4',writer)
+    #plt.show()
+def plot_window_with_vedo(data,sampling_rate,win_size,step,mesh,sensor_pts,event_time,tmin = None,tmax = None):
+    #from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+    #times = [i*(1/sampling_rate) for i in range(len(data))]
+    if tmin == None or tmax == None:
+        times = np.arange(0,len(data)/300,1/sampling_rate)
+        tmin = times[0]
+        tmax = times[-1]
+    else:
+        times = np.arange(tmin,tmax,1/sampling_rate)
+        data = data[tmin*300:tmax*300]
     
-    plt.show()
+    # times = np.arange(0,len(data)/300,1/sampling_rate)
+    # vtkWidget = QVTKRenderWindowInteractor()
+    # vp = Plotter(qtWidget=vtkWidget)
+
+    
+    
+    #times = times[tmin*300:tmax*300]
+    #data = data[tmin*300:tmax*300]
+    #test_data = data[tmin*300:tmax*300]
+    ft = np.abs(np.fft.rfft(data))
+    ps = np.square(ft)
+    frequency = np.linspace(0, sampling_rate/2, len(ps))
+    fig, ax = plt.subplots(3)
+    fig.set_size_inches((15, 12))
+    # ax[0].axvspan(0,times[int(len(times)/3)], color='red',alpha=0.2)
+    # ax[0].axvspan(times[int(len(times)/3)],times[int(len(times)/1.1)], color='green',alpha=0.2)
+    # ax[0].axvspan(times[int(len(times)/1.1)],times[int(len(times))-1], color='red',alpha=0.2)
+    
+    min_win = 0
+    max_win = win_size
+    ln, = ax[1].plot(frequency, ft)
+    
+    def init():
+        ax[1].set_ylim((0,10e-8))
+
+    def update(frame):
+
+        ax[0].cla()
+        ax[1].cla()
+        nonlocal max_win
+        nonlocal min_win
+
+        ax[0].plot(times,data,label="EEG O1",color='k',lw=0.5)
+        ax[0].set_xlabel("time in s")
+        ax[0].set_ylabel("Amplitude in V")
+        ax[0].axvline(event_time, ls='--',color='blue',lw=2, label='Eyes-Closed')
+        ax[0].axvspan(min_win+tmin,max_win+tmin, color='red',alpha=0.5)
+        ax[0].legend()
+        pos_x1 = int((min_win)*sampling_rate)
+
+        pos_x2 = int((max_win)*sampling_rate)
+        
+        ft = np.abs(np.fft.rfft(data[pos_x1:pos_x2]))
+        ps = np.square(ft)
+        frequency = np.linspace(0, sampling_rate/2, len(ps))
+        ax[1].set_ylim((0,1e-5))
+        ax[1].set_ylabel("Intensity (arb. u.)")
+        ax[1].set_xlabel("Frequency in Hz")
+        ax[1].plot(frequency,ps, color='red',label=(f'Sum: {sum(ps)*(10**5):.2f} e-5'))
+        ax[1].legend()
+        min_win +=step
+        max_win +=step
+
+    ax[0].plot(times,data)
+    ax[0].set_xlabel("time in s")
+    ax[0].set_ylabel("Amplitude in V")
+    ax[0].legend(["Time Window"])
 
         
     

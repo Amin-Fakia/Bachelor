@@ -27,11 +27,7 @@ line1, = ax.plot(x, y)
 
 y=np.array([])
 
-plt.title("Dynamic Plot",fontsize=25)
 
-plt.xlabel("X",fontsize=18)
-plt.ylabel("uV",fontsize=18)
-plt.ylim([-10000,10000])
 
 
 

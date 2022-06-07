@@ -2,7 +2,7 @@ from matplotlib.pyplot import axes
 import scipy.interpolate
 import numpy as np
 from functions import *
-
+from matplotlib import cm
 import vedo
 
 import easygui
@@ -31,7 +31,7 @@ centroid = np.array(xySensors).mean(axis=0)
 
 raw.filter(8,12)
 
-data = raw.get_data()
+data = raw.get_data(start=11*300,stop=21*300)
 
 
 
@@ -45,7 +45,7 @@ xy_center = centroid   # center of the plot
 radius = .43      # radius
 
 # mostly original code
-psds = get_power_values(data,300)
+psds = get_power_values(data,300,3,(1/300)*20)
 
 koord = [[1,4],[3,4],[1,3],[3,3],[2,3],[1,2],[3,2],[2,2],[1,1],[3,1],[2,1],[1,0],[3,0],[0,3],[4,3],[0,2],[4,2],[0,1],[4,1]]
 koord = xySensors
@@ -129,7 +129,7 @@ def update(val):
     zi = scipy.interpolate.griddata((x, y), [j[frame] for j in psds], (xi[None,:], yi[:,None]), method='cubic')
     
     
-    ax.contourf(xi, yi, zi, 30, cmap =  plt.cm.jet, zorder = 0,vmin=vmin,vmax=vmax)
+    ax.contourf(xi, yi, zi, 40, cmap =  cm.get_cmap('YlOrRd'), zorder = 0,vmin=0,vmax=vmax)
     #ax.contour(xi, yi, zi,4, colors='black', zorder = 1)
     ax.add_patch(head)
     ax.add_patch(whitearea)
