@@ -22,16 +22,12 @@ UNITY_PORT = 6050
 host,port = socket.gethostbyname(TCP_IP ), UNITY_PORT
 BUFFER_SIZE = 5
 NUMBER_OF_THREADS = 6
-JOB_NUMBER = [1, 2]
+JOB_NUMBER = [1, 2, 3]
 queue = Queue()
 win_idx = 0
 
-
-
-global st
 global colors
 colors = []
-
 
 # GET Paths
 dir_path = '../Bachelor/mainPy'
@@ -64,7 +60,6 @@ def calcFFT(data):
 
 
 
-
 scbar = mesh.addScalarBar()
 
 new_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -74,6 +69,7 @@ new_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 def start():
     print("waiting for connection")
     counter = 0
+    
     global colors
     while counter < 100:
         try:
@@ -91,28 +87,22 @@ def start():
     s.close()    
     
 
-    
+
 def create_workers():
     for _ in range(NUMBER_OF_THREADS):
         t = threading.Thread(target=work)
         t.daemon = True
         t.start()
-# def start_turtle():
-#     while True:
-#         #plot.show(mesh,interactive=0)
-#         pass
-#         time.sleep(1/60)
+def plot_FFT():
+    global ftvalues
+
+    
 
 def start_dsi_client():
     global colors
     global win_idx
     print("starting dsi client")
     ftvalues = np.empty((20))
-    loc_max = []
-    loc_min = []
-    maxV = 0
-    txt = Text2D("")
-    xdata, ydata = [], []
     step = 20
     win_size = 100
     ix = 0
@@ -136,33 +126,35 @@ def start_dsi_client():
                 eeg_data = dc.printsensorDataPacket(data)
                 ftvalues = np.c_[ftvalues,eeg_data]
                 if ix>= win_size and ix % step == 0:
-                    win_idx = ix
+                    win_idx = ix//step
                     psds = calcFFT(ftvalues)
                     vmax = max(psds)
                     intpr = RBF_Interpolation(mesh,sensor_pts,psds)
                     mesh.addQuality().cmap('jet', input_array=intpr,arrayName="Quality", on="points",vmin=0)
-                    
-                    #print(len(ftvalues[0]))
+
                     st = f"Step: { step }, Window Size: {win_size}\nMax Value: {vmax/1e6:.3f}"
                     
-                    txt.text(st)
+                    #txt.text(st)
                     #scbar = mesh.addScalarBar()
                     # plot.show(mesh,txt,interactive=False)
                     # plot.remove(scbar)
                     ftvalues = np.delete(ftvalues,range(step),1)
 
                 ix+=1
+    
 
+# Start threading
 def work():
     while True:
         x = queue.get()
         if x == 1:
             start()
-        # if x == 2:
-        #     start_turtle()
         if x == 2:
             start_dsi_client()
+        if x == 3:
+            plot_FFT()
         queue.task_done()
+
         
 def create_jobs():
     for x in JOB_NUMBER:
@@ -173,6 +165,7 @@ create_workers()
 create_jobs()
 
 
+# Original script
 # while True:    
 #     data = s.recv(BUFFER_SIZE)
     
