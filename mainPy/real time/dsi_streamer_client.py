@@ -18,7 +18,8 @@ import threading
 # CONSTANTS
 TCP_IP = "127.0.0.1"
 TCP_PORT = 9067
-host,port = socket.gethostbyname(TCP_IP ), 6050
+UNITY_PORT = 6050
+host,port = socket.gethostbyname(TCP_IP ), UNITY_PORT
 BUFFER_SIZE = 5
 NUMBER_OF_THREADS = 6
 JOB_NUMBER = [1, 2]
@@ -104,11 +105,11 @@ def create_workers():
 
 def start_dsi_client():
     global colors
+    global win_idx
     print("starting dsi client")
     ftvalues = np.empty((20))
     loc_max = []
     loc_min = []
-    global win_idx
     maxV = 0
     txt = Text2D("")
     xdata, ydata = [], []
